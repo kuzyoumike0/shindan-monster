@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createApp } from '../server.mjs';
+import { once } from 'node:events';
+const app=createApp();app.listen(0,'127.0.0.1');await once(app,'listening');const origin=`http://127.0.0.1:${app.address().port}`;
+test.after(()=>new Promise(resolve=>app.close(resolve)));
+test('health check and root page',async()=>{assert.equal((await fetch(origin+'/health')).status,200);const r=await fetch(origin+'/');assert.equal(r.status,200);const s=await r.text();assert.match(s,/相性が合う相手/);assert.match(s,/const origin=location.origin/);assert.doesNotMatch(s,/chatgpt\.site/)});
+test('all sixteen shared pages and cards work on the new origin',async()=>{for(let i=0;i<16;i++){const r=await fetch(origin+`/result/${i}/?s=2-2-2-2`);assert.equal(r.status,200);const s=await r.text();assert.ok(s.includes(`content="${origin}/assets/share-${i}.png"`));assert.doesNotMatch(s,/__PUBLIC_ORIGIN__/);const image=await fetch(origin+`/assets/share-${i}.png`);assert.equal(image.status,200);assert.equal(image.headers.get('content-type'),'image/png')}});
+test('public reverse-proxy origin appears in X metadata',async()=>{let r=await fetch(origin+'/result/0/',{headers:{'x-forwarded-host':'little-monsters.up.railway.app','x-forwarded-proto':'https'}});assert.ok((await r.text()).includes('https://little-monsters.up.railway.app/assets/share-0.png'))});
+test('redirect preserves result percentages; missing and private files stay hidden',async()=>{let r=await fetch(origin+'/result/15?s=4-4-4-4',{redirect:'manual'});assert.equal(r.status,308);assert.equal(r.headers.get('location'),'/result/15/?s=4-4-4-4');for(const p of ['/server.mjs','/.env','/%2e%2e%2fserver.mjs','/result/99/'])assert.equal((await fetch(origin+p)).status,404);assert.equal((await fetch(origin+'/%ZZ')).status,400);assert.equal((await fetch(origin+'/',{method:'POST'})).status,405)});
