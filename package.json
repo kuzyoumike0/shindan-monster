@@ -1,9 +1,0 @@
-{
-  "name": "little-monsters-diagnosis",
-  "version": "1.0.0",
-  "private": true,
-  "description": "あなたの心に住む、ちいさな怪物 — 16種類のゴスロリ診断",
-  "type": "module",
-  "engines": { "node": ">=22" },
-  "scripts": { "start": "node server.mjs", "test": "node --test" }
-}
